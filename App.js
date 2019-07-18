@@ -1,6 +1,6 @@
 import React from 'react';
-import { FileSystem } from 'expo';
-import { ActivityIndicator, Dimensions, TouchableOpacity } from "react-native";
+import { FileSystem, MediaLibrary } from 'expo';
+import { ActivityIndicator, Dimensions, TouchableOpacity, Platform } from "react-native";
 import { Camera } from 'expo-camera';
 import * as Permissions from 'expo-permissions';
 import * as FaceDetector from 'expo-face-detector';
@@ -8,6 +8,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import styled from 'styled-components';
 
 const { width, height } = Dimensions.get("window");
+const ALBUM_NAME = 'KW-App-Data';
 
 const CenterView = styled.View`
   flex: 1;
@@ -137,7 +138,7 @@ export default class App extends React.Component {
           this.savePhoto(uri);
         }
       }
-    } catch(error) {
+    } catch (error) {
       alert(error);
       this.setState({
         smileDetected: false
@@ -145,6 +146,24 @@ export default class App extends React.Component {
     }
   }
   savePhoto = async(uri) => {
-    
+    try {
+      const { status } = await Permissions.askAsync(Permissions.CAMERA_ROLL);
+      if (status === "granted") {
+        const asset = await MediaLibrary.createAssetAsync(uri);
+        let album = await MediaLibrary.getAlbumAsync(ALBUM_NAME);
+        if (album === null) {
+          album = await MediaLibrary.createAlbumAsync(ALBUM_NAME, asset);
+        } else {
+          await MediaLibrary.addAssetsToAlbumAsync([asset], album);
+        }
+        setTimeout(() => 
+          this.setState({ smileDetected: false })
+        , 2000);
+      } else {
+        this.setState({ hasPermission: false });
+      }
+    } catch (error) {
+      alert(error);
+    }
   } 
 }
